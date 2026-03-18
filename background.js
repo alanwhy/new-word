@@ -1,6 +1,29 @@
 import { FIREBASE_CONFIG, FIRESTORE_BASE_URL } from "./firebase-config.js";
 
 // ─────────────────────────────────────────────
+// 词性中文映射表
+// ─────────────────────────────────────────────
+const POS_ZH_MAP = {
+  noun: "名词",
+  verb: "动词",
+  adjective: "形容词",
+  adverb: "副词",
+  pronoun: "代词",
+  preposition: "介词",
+  conjunction: "连词",
+  interjection: "感叹词",
+  article: "冠词",
+  determiner: "限定词",
+  exclamation: "感叹词",
+  abbreviation: "缩写",
+  idiom: "习语",
+  prefix: "前缀",
+  suffix: "后缀",
+  numeral: "数词",
+  particle: "助词",
+};
+
+// ─────────────────────────────────────────────
 // Google OAuth 登录（使用 chrome.identity）
 // ─────────────────────────────────────────────
 
@@ -174,14 +197,13 @@ async function getWordDoc(uid, word) {
 }
 
 /**
- * 收藏单词（新增或 count+1）
+ * 收藏单词（新增或 count+1），不自动翻译，翻译由用户在详情页手动触发
  */
 async function saveWord(uid, word, context, pageUrl, pageTitle) {
   const idToken = await getFirebaseIdToken();
   const docId = encodeURIComponent(word.toLowerCase());
   const url = `${FIRESTORE_BASE_URL}/users/${uid}/words/${docId}`;
 
-  // 先尝试读取已有数据
   const existing = await getWordDoc(uid, word);
   const now = new Date().toISOString();
 
@@ -191,19 +213,23 @@ async function saveWord(uid, word, context, pageUrl, pageTitle) {
     count: toFirestoreValue(existing ? existing.count + 1 : 1),
     firstCollectedAt: toFirestoreValue(existing ? existing.firstCollectedAt : now),
     lastCollectedAt: toFirestoreValue(now),
-    // 保存最近几次的上下文
     contexts: toFirestoreValue([
       ...(existing?.contexts || []).slice(-4),
       { text: context, url: pageUrl, title: pageTitle, time: now },
     ]),
   };
 
+  // 已有翻译数据需要一并带上，防止 PATCH 覆盖整个文档时丢失
+  if (existing?.translations) {
+    fields.translations = toFirestoreValue(existing.translations);
+  }
+  if (existing?.contextTranslation) {
+    fields.contextTranslation = toFirestoreValue(existing.contextTranslation);
+  }
+
   const res = await fetch(url, {
     method: "PATCH",
-    headers: {
-      Authorization: `Bearer ${idToken}`,
-      "Content-Type": "application/json",
-    },
+    headers: { Authorization: `Bearer ${idToken}`, "Content-Type": "application/json" },
     body: JSON.stringify({ fields }),
   });
 
@@ -245,6 +271,148 @@ async function getAllWords(uid) {
   if (!res.ok) throw new Error("获取生词列表失败");
   const data = await res.json();
   return (data.documents || []).map(firestoreDocToObj);
+}
+
+// ─────────────────────────────────────────────
+// 翻译：Free Dictionary API + 可选翻译服务
+// ─────────────────────────────────────────────
+
+/**
+ * 使用 MyMemory 免费翻译（无需 API Key，每 IP 每日约 1000 词）
+ */
+async function translateWithMyMemory(texts) {
+  const results = await Promise.all(
+    texts.map(async (text) => {
+      const t = (text || "").trim().slice(0, 500);
+      if (!t) return "";
+      try {
+        const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(t)}&langpair=en|zh-CN`);
+        if (!res.ok) return "";
+        const data = await res.json();
+        if (data.responseStatus !== 200) return "";
+        return data.responseData?.translatedText || "";
+      } catch {
+        return "";
+      }
+    }),
+  );
+  return results;
+}
+
+/**
+ * 使用用户自定义的 Google Cloud Translation API Key 翻译
+ */
+async function translateWithGoogle(texts, apiKey) {
+  const res = await fetch(`https://translation.googleapis.com/language/translate/v2?key=${apiKey}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ q: texts, source: "en", target: "zh-CN", format: "text" }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || "Google 翻译失败");
+  }
+  const data = await res.json();
+  return (data.data?.translations || []).map((t) => t.translatedText);
+}
+
+/**
+ * 根据用户设置选择翻译服务（MyMemory 免费 或 Google 自定义 Key）
+ */
+async function translateTexts(texts) {
+  const settings = await chrome.storage.sync.get(["translationProvider", "googleTranslateApiKey"]);
+  if (settings.translationProvider === "google" && settings.googleTranslateApiKey) {
+    return translateWithGoogle(texts, settings.googleTranslateApiKey);
+  }
+  return translateWithMyMemory(texts);
+}
+
+/**
+ * 通过 Free Dictionary API 获取词条（词性 + 英文释义），
+ * 再通过当前翻译服务批量翻译为中文。
+ *
+ * 返回结构：
+ * {
+ *   contextTranslation: string,        // 上下文句子的中文翻译
+ *   translations: [{
+ *     pos: string,                      // 词性（英文，如 "noun"）
+ *     posZh: string,                    // 词性（中文，如 "名词"）
+ *     definitions: [{ en, zh }]         // 每条释义的英中对照
+ *   }]
+ * }
+ */
+async function fetchWordTranslations(word, context) {
+  const result = { contextTranslation: "", translations: [] };
+
+  // ── 1. Free Dictionary API 获取词性和英文释义 ──
+  let dictData = null;
+  try {
+    const dictRes = await fetch(
+      `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word.toLowerCase())}`,
+    );
+    if (dictRes.ok) dictData = await dictRes.json();
+  } catch (e) {
+    console.warn("[translate] Dictionary API 失败，将仅做上下文翻译", e);
+  }
+
+  // ── 2. 提取词性分组（每个词性最多 3 条释义，去重）──
+  const posGroups = {}; // { "noun": ["def1", "def2", ...] }
+  if (Array.isArray(dictData)) {
+    for (const entry of dictData) {
+      for (const meaning of entry.meanings || []) {
+        const pos = meaning.partOfSpeech?.toLowerCase();
+        if (!pos) continue;
+        if (!posGroups[pos]) posGroups[pos] = [];
+        for (const def of meaning.definitions || []) {
+          if (posGroups[pos].length >= 3) break;
+          if (def.definition && !posGroups[pos].includes(def.definition)) {
+            posGroups[pos].push(def.definition);
+          }
+        }
+      }
+    }
+  }
+
+  // ── 3. 构建批量翻译列表 ──
+  // 索引 0：上下文句子（或单词本身，用于上下文翻译）
+  const textsToTranslate = [context?.trim() || word];
+  const indexMap = []; // 记录 [1..] 各文本对应的 { pos, defIdx }
+  for (const pos of Object.keys(posGroups)) {
+    for (let i = 0; i < posGroups[pos].length; i++) {
+      textsToTranslate.push(posGroups[pos][i]);
+      indexMap.push({ pos, defIdx: i });
+    }
+  }
+
+  // ── 4. 调用翻译服务（MyMemory 免费 或 用户自定义 Google Key）──
+  let translatedTexts = [];
+  try {
+    translatedTexts = await translateTexts(textsToTranslate);
+  } catch (e) {
+    console.warn("[translate] 翻译失败", e);
+  }
+
+  // ── 5. 整理结果 ──
+  result.contextTranslation = translatedTexts[0] || "";
+
+  // 按词性组织翻译结果
+  const posDefs = {}; // { "noun": [{ en, zh }] }
+  for (let i = 0; i < indexMap.length; i++) {
+    const { pos, defIdx } = indexMap[i];
+    if (!posDefs[pos]) posDefs[pos] = [];
+    posDefs[pos].push({
+      en: posGroups[pos][defIdx],
+      zh: translatedTexts[i + 1] || "",
+    });
+  }
+
+  result.translations = Object.entries(posDefs).map(([pos, definitions]) => ({
+    pos,
+    posZh: POS_ZH_MAP[pos] || pos,
+    definitions,
+  }));
+
+  return result;
 }
 
 /**
@@ -311,6 +479,26 @@ async function handleMessage(message, sender) {
       const { uid, word } = message;
       await deleteWord(uid, word);
       return { success: true };
+    }
+
+    case "TRANSLATE_WORD": {
+      // 为已存在的单词（手动触发）获取翻译，写回 Firestore 并返回结果
+      const { uid, word, context } = message;
+      const wordTranslations = await fetchWordTranslations(word, context);
+      const idToken = await getFirebaseIdToken();
+      const docId = encodeURIComponent(word.toLowerCase());
+      const patchUrl = `${FIRESTORE_BASE_URL}/users/${uid}/words/${docId}`;
+      const patchFields = {
+        contextTranslation: toFirestoreValue(wordTranslations.contextTranslation),
+        translations: toFirestoreValue(wordTranslations.translations),
+      };
+      const patchRes = await fetch(patchUrl, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${idToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ fields: patchFields }),
+      });
+      if (!patchRes.ok) throw new Error("翻译写入 Firestore 失败");
+      return { success: true, ...wordTranslations };
     }
 
     default:

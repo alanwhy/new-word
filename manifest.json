@@ -15,7 +15,9 @@
     "https://firestore.googleapis.com/*",
     "https://identitytoolkit.googleapis.com/*",
     "https://securetoken.googleapis.com/*",
-    "https://*.googleapis.com/*"
+    "https://*.googleapis.com/*",
+    "https://api.dictionaryapi.dev/*",
+    "https://api.mymemory.translated.net/*"
   ],
   "background": {
     "service_worker": "background.js",

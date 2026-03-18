@@ -1,5 +1,8 @@
 // ⚠️ 请将下方替换为你在 Firebase Console 获取的配置
 // 详细步骤见 README.md
+// ⚠️ 使用翻译功能前，需在 Google Cloud Console 中为本项目启用 Cloud Translation API：
+//    https://console.cloud.google.com/apis/library/translate.googleapis.com
+//    启用后，下方 apiKey 即可同时用于翻译请求，无需额外密钥。
 export const FIREBASE_CONFIG = {
   apiKey: "YOUR_API_KEY",
   authDomain: "YOUR_PROJECT_ID.firebaseapp.com",

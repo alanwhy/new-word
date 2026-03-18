@@ -157,10 +157,12 @@ function renderWordList(words) {
   container.innerHTML = words
     .map((w) => {
       const ctx = getDisplayContext(w);
+      const translationPreview = getTranslationPreview(w);
       return `
       <div class="word-item" data-word="${escapeAttr(w.word)}">
         <div class="word-main">
           <div class="word-text">${escapeHtml(w.displayWord || w.word)}</div>
+          ${translationPreview ? `<div class="word-translation">${translationPreview}</div>` : ""}
           ${ctx ? `<div class="word-context">${ctx}</div>` : ""}
         </div>
         <span class="badge-count">×${w.count || 1}</span>
@@ -177,6 +179,24 @@ function renderWordList(words) {
       if (wordData) openDetail(wordData);
     });
   });
+}
+
+/**
+ * 生成单词列表中的翻译预览文字（如 "名词 · 例子；说明"）
+ */
+function getTranslationPreview(wordData) {
+  const translations = wordData.translations;
+  if (!translations || translations.length === 0) return "";
+  const first = translations[0];
+  if (!first || !first.definitions || first.definitions.length === 0) return "";
+  const posLabel = first.posZh || first.pos || "";
+  const defs = first.definitions
+    .slice(0, 2)
+    .map((d) => d.zh || "")
+    .filter(Boolean)
+    .join("；");
+  if (!defs) return "";
+  return `${escapeHtml(posLabel)} · ${escapeHtml(defs)}`;
 }
 
 function getDisplayContext(wordData) {
@@ -207,6 +227,9 @@ function openDetail(wordData) {
   const last = wordData.lastCollectedAt ? formatDate(wordData.lastCollectedAt) : "";
   $("detail-dates").textContent = first ? `首次 ${first}  最近 ${last}` : "";
 
+  // 渲染翻译区域
+  renderTranslations(wordData);
+
   const contexts = wordData.contexts || [];
   const targetWord = wordData.displayWord || wordData.word;
   $("detail-contexts").innerHTML =
@@ -231,6 +254,83 @@ function openDetail(wordData) {
       .join("") || '<div class="context-item" style="color:var(--text-muted)">暂无上下文记录</div>';
 
   $("word-detail-modal").classList.remove("hidden");
+}
+
+// ─────────────────────────
+// 渲染翻译区域
+// ─────────────────────────
+function renderTranslations(wordData) {
+  const el = $("detail-translations");
+  const hasTranslations = Array.isArray(wordData.translations) && wordData.translations.length > 0;
+  const hasContextTrans = !!wordData.contextTranslation;
+
+  if (!hasTranslations && !hasContextTrans) {
+    // 无翻译数据：显示「获取翻译」按钮
+    el.innerHTML = `<button class="btn btn-fetch-translate" id="fetch-translate-btn">
+      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+      </svg>
+      获取中文翻译
+    </button>`;
+    document.getElementById("fetch-translate-btn")?.addEventListener("click", async () => {
+      const btn = document.getElementById("fetch-translate-btn");
+      btn.disabled = true;
+      btn.innerHTML = `<div class="spinner" style="width:13px;height:13px;border-width:2px"></div>翻译中...`;
+      const ctx = wordData.contexts?.[wordData.contexts.length - 1]?.text || "";
+      const res = await send({
+        type: "TRANSLATE_WORD",
+        uid: currentUser.uid,
+        word: wordData.word,
+        context: ctx,
+      });
+      if (res.success) {
+        wordData.contextTranslation = res.contextTranslation;
+        wordData.translations = res.translations;
+        // 同步到 allWords 缓存
+        const idx = allWords.findIndex((w) => w.word === wordData.word);
+        if (idx >= 0) allWords[idx] = { ...allWords[idx], ...wordData };
+        renderTranslations(wordData);
+        applyFilters(); // 刷新列表中的翻译预览
+      } else {
+        btn.disabled = false;
+        btn.textContent = "获取失败，点击重试";
+      }
+    });
+    return;
+  }
+
+  let html = "";
+
+  // 各词性释义（字典式排版）
+  const translations = wordData.translations || [];
+  if (translations.length > 0) {
+    html += `<div class="translation-entries">`;
+    for (const entry of translations) {
+      const posLabel = escapeHtml(entry.posZh || entry.pos || "");
+      html += `<div class="translation-entry">
+        <span class="pos-badge">${posLabel}</span>
+        <ul class="definition-list">`;
+      for (const def of entry.definitions || []) {
+        const zh = escapeHtml(def.zh || "");
+        const en = escapeHtml(def.en || "");
+        if (!zh) continue;
+        html += `<li class="definition-item">
+          <span class="def-zh">${zh}</span>
+          ${en ? `<span class="def-en">${en}</span>` : ""}
+        </li>`;
+      }
+      html += `</ul></div>`;
+    }
+    html += `</div>`;
+  }
+
+  // 上下文翻译（显示在释义下方）
+  if (hasContextTrans) {
+    html += `<div class="translation-context">「${escapeHtml(wordData.contextTranslation)}」</div>`;
+  }
+
+  el.innerHTML = html || "";
 }
 
 $("close-modal").addEventListener("click", closeDetail);
@@ -307,6 +407,74 @@ function formatDate(iso) {
   } catch {
     return "";
   }
+}
+
+// ─────────────────────────
+// 翻译设置面板
+// ─────────────────────────
+$("settings-btn").addEventListener("click", openSettings);
+$("close-settings").addEventListener("click", closeSettings);
+$("settings-panel").addEventListener("click", (e) => {
+  if (e.target === $("settings-panel")) closeSettings();
+});
+$("translate-provider-mymemory").addEventListener("change", () => {
+  $("google-key-section").classList.add("hidden");
+});
+$("translate-provider-google").addEventListener("change", () => {
+  $("google-key-section").classList.remove("hidden");
+});
+$("save-settings-btn").addEventListener("click", saveTranslateSettings);
+
+async function openSettings() {
+  await loadTranslateSettings();
+  $("settings-msg").classList.add("hidden");
+  $("settings-panel").classList.remove("hidden");
+}
+
+function closeSettings() {
+  $("settings-panel").classList.add("hidden");
+}
+
+async function loadTranslateSettings() {
+  const settings = await new Promise((resolve) =>
+    chrome.storage.sync.get(["translationProvider", "googleTranslateApiKey"], resolve),
+  );
+  const provider = settings.translationProvider || "mymemory";
+  $("translate-provider-mymemory").checked = provider === "mymemory";
+  $("translate-provider-google").checked = provider === "google";
+  $("google-api-key-input").value = settings.googleTranslateApiKey || "";
+  $("google-key-section").classList.toggle("hidden", provider !== "google");
+}
+
+async function saveTranslateSettings() {
+  const provider = $("translate-provider-google").checked ? "google" : "mymemory";
+  const apiKey = $("google-api-key-input").value.trim();
+
+  if (provider === "google" && !apiKey) {
+    showSettingsMsg("请填写 Google API Key", "error");
+    return;
+  }
+
+  const btn = $("save-settings-btn");
+  btn.disabled = true;
+  btn.textContent = "保存中...";
+
+  await new Promise((resolve) =>
+    chrome.storage.sync.set({ translationProvider: provider, googleTranslateApiKey: apiKey }, resolve),
+  );
+
+  btn.disabled = false;
+  btn.textContent = "保存设置";
+  showSettingsMsg(
+    provider === "google" ? "已保存，将使用 Google 翻译" : "已保存，将使用免费翻译（MyMemory）",
+    "success",
+  );
+}
+
+function showSettingsMsg(msg, type) {
+  const el = $("settings-msg");
+  el.textContent = msg;
+  el.className = `settings-msg settings-msg-${type}`;
 }
 
 // 启动

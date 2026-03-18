@@ -472,3 +472,291 @@ body {
   background: var(--red);
   color: #fff;
 }
+
+/* ── 单词列表中的翻译预览 ── */
+.word-translation {
+  font-size: 11px;
+  color: #818cf8;
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── 详情弹层：翻译区域 ── */
+.translations-section {
+  margin-bottom: 12px;
+}
+
+.translation-entries {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-bottom: 8px;
+}
+
+.translation-entry {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.pos-badge {
+  background: rgba(37, 99, 235, 0.18);
+  color: #60a5fa;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-top: 3px;
+  border: 1px solid rgba(37, 99, 235, 0.3);
+  letter-spacing: 0.5px;
+}
+
+.definition-list {
+  flex: 1;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+}
+
+.definition-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.def-zh {
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.def-en {
+  font-size: 10px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.translation-context {
+  background: linear-gradient(135deg, rgba(30, 27, 75, 0.8), rgba(35, 35, 74, 0.8));
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  border-radius: 7px;
+  padding: 7px 11px;
+  font-size: 11px;
+  color: #a5b4fc;
+  line-height: 1.6;
+  font-style: italic;
+}
+
+.btn-fetch-translate {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px;
+  background: var(--bg3);
+  color: var(--accent);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
+}
+.btn-fetch-translate:hover {
+  border-color: var(--accent);
+  color: var(--accent-hover);
+}
+.btn-fetch-translate:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* ── 头部操作按钮组 ── */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ── 翻译设置面板 ── */
+.settings-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.settings-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.settings-option:has(input:checked) {
+  border-color: var(--accent);
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.settings-option input[type="radio"] {
+  margin-top: 3px;
+  accent-color: var(--accent);
+  flex-shrink: 0;
+}
+
+.option-body {
+  flex: 1;
+}
+
+.option-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+
+.option-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 20px;
+}
+
+.option-badge-free {
+  background: rgba(5, 150, 105, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(5, 150, 105, 0.35);
+}
+
+.option-badge-custom {
+  background: rgba(37, 99, 235, 0.18);
+  color: #60a5fa;
+  border: 1px solid rgba(37, 99, 235, 0.3);
+}
+
+.option-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.google-key-section {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.key-input {
+  width: 100%;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--text);
+  font-size: 12px;
+  padding: 7px 10px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.key-input:focus {
+  border-color: var(--accent);
+}
+
+.key-input::placeholder {
+  color: var(--text-muted);
+}
+
+.key-guide {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.key-guide summary {
+  cursor: pointer;
+  color: var(--accent);
+  font-weight: 500;
+  padding: 2px 0;
+  user-select: none;
+}
+
+.key-guide summary:hover {
+  color: var(--accent-hover);
+}
+
+.key-guide-steps {
+  margin: 8px 0 6px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  line-height: 1.5;
+}
+
+.key-guide-steps a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.key-guide-steps a:hover {
+  text-decoration: underline;
+}
+
+.key-guide-note {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+
+.btn-save-settings {
+  background: var(--accent);
+  color: #fff;
+  transition: opacity 0.15s;
+}
+
+.btn-save-settings:hover {
+  opacity: 0.85;
+}
+
+.btn-save-settings:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.settings-msg {
+  font-size: 12px;
+  text-align: center;
+  margin-top: 8px;
+}
+
+.settings-msg-success {
+  color: #34d399;
+}
+
+.settings-msg-error {
+  color: #fca5a5;
+}

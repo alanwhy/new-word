@@ -49,23 +49,43 @@
             <span id="word-count-header" class="word-count-header"></span>
           </div>
         </div>
-        <button id="logout-btn" class="btn-icon" title="退出登录">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-            <polyline points="16 17 21 12 16 7" />
-            <line x1="21" y1="12" x2="9" y2="12" />
-          </svg>
-        </button>
+        <div class="header-actions">
+          <button id="settings-btn" class="btn-icon" title="翻译设置">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="12" cy="12" r="3" />
+              <path
+                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+              />
+            </svg>
+          </button>
+          <button id="logout-btn" class="btn-icon" title="退出登录">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </button>
+        </div>
       </header>
 
       <!-- 搜索和工具栏 -->
@@ -126,6 +146,8 @@
           <span class="badge badge-count" id="detail-count"></span>
           <span class="detail-dates" id="detail-dates"></span>
         </div>
+        <!-- 翻译区域 -->
+        <div id="detail-translations" class="translations-section"></div>
         <div id="detail-contexts" class="contexts"></div>
         <button id="delete-word-btn" class="btn btn-danger">
           <svg
@@ -147,6 +169,69 @@
           </svg>
           从生词本删除
         </button>
+      </div>
+    </div>
+
+    <!-- 翻译设置面板 -->
+    <div id="settings-panel" class="modal hidden">
+      <div class="modal-content">
+        <button class="modal-close" id="close-settings">✕</button>
+        <h2 class="detail-word" style="font-size: 17px; margin-bottom: 16px">翻译设置</h2>
+
+        <div class="settings-options">
+          <label class="settings-option">
+            <input type="radio" name="translate-provider" id="translate-provider-mymemory" value="mymemory" />
+            <div class="option-body">
+              <div class="option-title">
+                免费翻译
+                <span class="option-badge option-badge-free">免费</span>
+              </div>
+              <div class="option-desc">由 MyMemory 提供，无需 API Key<br />每个 IP 每日约 1000 词的免费额度</div>
+            </div>
+          </label>
+
+          <label class="settings-option">
+            <input type="radio" name="translate-provider" id="translate-provider-google" value="google" />
+            <div class="option-body">
+              <div class="option-title">
+                Google 翻译
+                <span class="option-badge option-badge-custom">自定义 Key</span>
+              </div>
+              <div class="option-desc">使用你自己的 API Key，无额度限制</div>
+            </div>
+          </label>
+
+          <div id="google-key-section" class="google-key-section hidden">
+            <input
+              id="google-api-key-input"
+              type="password"
+              placeholder="粘贴你的 Google Translate API Key..."
+              class="key-input"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <details class="key-guide">
+              <summary>如何获取 Google Translate API Key？</summary>
+              <ol class="key-guide-steps">
+                <li>
+                  前往
+                  <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer"
+                    >console.cloud.google.com</a
+                  >，登录 Google 账号
+                </li>
+                <li>顶部选择或新建一个项目</li>
+                <li>左侧 → 「API 和服务」→「库」，搜索 <b>Cloud Translation API</b> 并启用</li>
+                <li>左侧 → 「API 和服务」→「凭据」→「创建凭据」→「API 密钥」</li>
+                <li>建议「限制密钥」→ API 限制设为 Cloud Translation API，防止滥用</li>
+                <li>复制密钥粘贴到上方输入框，点击保存</li>
+              </ol>
+              <p class="key-guide-note">费用：每月前 50 万字符免费，超出约 ¥14 / 百万字符</p>
+            </details>
+          </div>
+        </div>
+
+        <button id="save-settings-btn" class="btn btn-save-settings">保存设置</button>
+        <p id="settings-msg" class="settings-msg hidden"></p>
       </div>
     </div>
 
