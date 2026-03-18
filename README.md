@@ -1,5 +1,17 @@
 # 新词本 Chrome 插件 - 配置指南
 
+## 功能概览
+
+- 在英文网页中选中单词，一键收藏到生词本
+- 记录每个单词的累计收藏次数和上下文句子
+- 数据同步到 Google 账号（Firebase Firestore）
+- Popup 展示生词本，支持按次数 / 时间 / 字母排序和搜索
+- 点击单词可手动获取**中文翻译**（词性标注 + 多义项 + 上下文翻译）
+- 翻译结果写入云端，之后打开无需重复翻译
+- 可在设置中选择翻译服务：**免费翻译（MyMemory，无需 Key）** 或 **Google 翻译（自备 API Key）**
+
+---
+
 ## 你需要做的事（两步配置）
 
 ---
@@ -100,7 +112,29 @@ export const FIREBASE_CONFIG = {
 3. 点击「使用 Google 账号登录」
 4. 在任意英文网页，**选中一个英文单词**，上方会出现「收藏」按钮
 5. 也可以**右键选中文字** → 「收藏 "xxx" 到生词本」
-6. 点击插件图标可查看生词本，支持按收藏次数/时间/字母排序
+6. 点击插件图标可查看生词本，支持按收藏次数 / 时间 / 字母排序和搜索
+7. 点击任意单词卡片，在详情页点击「**获取中文翻译**」即可翻译（首次需联网，之后从云端直接读取）
+
+---
+
+## 翻译功能配置
+
+插件内置两种翻译服务，点击生词本右上角的 **⚙️ 图标**即可切换：
+
+| 模式             | 服务商       | 费用                                      | 说明                                         |
+| ---------------- | ------------ | ----------------------------------------- | -------------------------------------------- |
+| 免费翻译（默认） | MyMemory     | 完全免费                                  | 每个 IP 每天约 1000 词额度，个人日常使用足够 |
+| Google 翻译      | Google Cloud | 每月 50 万字符免费，超出约 ¥14 / 百万字符 | 需自备 API Key，翻译质量更高                 |
+
+### 如何获取 Google Translate API Key（仅 Google 翻译模式需要）
+
+1. 前往 [console.cloud.google.com](https://console.cloud.google.com)，选择或新建项目
+2. 左侧 → 「API 和服务」→「库」，搜索 **Cloud Translation API** 并启用
+3. 左侧 → 「API 和服务」→「凭据」→「创建凭据」→「API 密钥」
+4. 建议点击「限制密钥」→ API 限制设为 Cloud Translation API，防止滥用
+5. 复制密钥，粘贴到插件设置页的输入框中，点击保存
+
+> API Key 保存在 `chrome.storage.sync`（加密存储，不随插件代码分发）。
 
 ---
 
@@ -108,17 +142,44 @@ export const FIREBASE_CONFIG = {
 
 ```
 new-word/
-├── manifest.json        # 插件配置
-├── firebase-config.js   # Firebase 配置（需填写）
-├── background.js        # Service Worker（登录、数据操作）
-├── content.js           # 网页注入脚本（划词收藏）
-├── content.css          # 网页注入样式
-├── popup.html           # 弹出窗口 HTML
-├── popup.css            # 弹出窗口样式
-├── popup.js             # 弹出窗口逻辑
+├── manifest.json              # 插件配置（含 OAuth2 client_id）
+├── firebase-config.js         # Firebase 配置（需填写，已加入 .gitignore）
+├── firebase-config.example.js # 配置模板（占位符，可公开）
+├── background.js              # Service Worker（登录、Firestore 读写、翻译调用）
+├── content.js                 # 网页注入脚本（划词收藏、悬浮按钮）
+├── content.css                # 网页注入样式
+├── popup.html                 # 弹出窗口 HTML
+├── popup.css                  # 弹出窗口样式
+├── popup.js                   # 弹出窗口逻辑（列表 / 详情 / 翻译 / 设置）
 ├── icons/
 │   ├── icon16.png
 │   ├── icon48.png
 │   └── icon128.png
 └── README.md
 ```
+
+---
+
+## 本地开发更新方式
+
+1. 修改代码
+2. 打开 `chrome://extensions`
+3. 点击「新词本」卡片上的 🔄 刷新按钮
+
+> Chrome 直接读取本地文件夹，不要删除或移动文件夹，否则插件失效。
+
+---
+
+## 常见问题
+
+**Q：首次登录出现「谷歌尚未验证此应用」警告**  
+A：开发阶段正常现象，点击「先进的」→「继续」即可。
+
+**Q：翻译结果不准确**  
+A：可在设置中切换为 Google 翻译（精度更高），或在详情页上下文翻译中参考句义。
+
+**Q：MyMemory 翻译额度用完了怎么办**  
+A：切换到 Google 翻译模式（每月 50 万字符免费额度对个人完全够用）。
+
+**Q：我发布了这个插件，其他用户会走我的翻译账单吗**  
+A：不会。默认的 MyMemory 是免费服务，按每个用户自己的 IP 计算额度；Google 翻译需要用户填写自己的 API Key，账单归用户自己。
