@@ -1,0 +1,110 @@
+/* content.css - 注入页面的样式 */
+
+#__new-word-tooltip__ {
+  position: absolute;
+  z-index: 2147483647;
+  display: none;
+  align-items: center;
+  gap: 4px;
+  background: #1a1a2e;
+  border-radius: 8px;
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.3),
+    0 1px 4px rgba(0, 0, 0, 0.2);
+  padding: 5px 6px;
+  pointer-events: all;
+  user-select: none;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  animation: nw-fade-in 0.15s ease;
+}
+
+@keyframes nw-fade-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-100% - 4px));
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -100%);
+  }
+}
+
+.nw-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.nw-save-btn {
+  background: #4f46e5;
+  color: #fff;
+}
+
+.nw-save-btn:hover:not(:disabled) {
+  background: #6366f1;
+  transform: scale(1.03);
+}
+
+.nw-save-btn.nw-loading {
+  background: #6366f1;
+  opacity: 0.7;
+  cursor: default;
+}
+
+.nw-save-btn.nw-saved {
+  background: #059669;
+  color: #fff;
+}
+
+.nw-save-btn.nw-error {
+  background: #dc2626;
+  color: #fff;
+}
+
+/* 保存成功通知条 */
+.__nw-notification__ {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #1e1b4b;
+  color: #e0e7ff;
+  border-radius: 10px;
+  font-size: 13px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+  opacity: 0;
+  transform: translateY(12px);
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
+  pointer-events: none;
+  max-width: 320px;
+}
+
+.__nw-notification__.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.__nw-notification__ b {
+  color: #a5b4fc;
+}
+
+.__nw-notification__ svg {
+  flex-shrink: 0;
+  color: #818cf8;
+}

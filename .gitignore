@@ -1,0 +1,8 @@
+# 个人 Firebase 配置（包含项目密钥，不提交）
+firebase-config.js
+
+# macOS
+.DS_Store
+
+# 打包文件
+*.zip
