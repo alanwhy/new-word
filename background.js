@@ -558,6 +558,66 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
+async function showPageNotification(tabId, message, count = 0) {
+  if (!tabId) return;
+
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (text, totalCount) => {
+        const existing = document.querySelector(".__nw-notification__");
+        if (existing) existing.remove();
+
+        const notif = document.createElement("div");
+        notif.className = "__nw-notification__";
+        notif.style.cssText = [
+          "position:fixed",
+          "bottom:24px",
+          "right:24px",
+          "z-index:2147483647",
+          "display:flex",
+          "align-items:center",
+          "gap:8px",
+          "padding:10px 16px",
+          "background:#1e1b4b",
+          "color:#e0e7ff",
+          "border-radius:10px",
+          "font-size:13px",
+          "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
+          "box-shadow:0 8px 30px rgba(0,0,0,.25)",
+          "pointer-events:none",
+          "max-width:320px",
+          "transition:opacity .3s ease,transform .3s ease",
+          "opacity:0",
+          "transform:translateY(12px)",
+        ].join(";");
+
+        const escapeHtml = (value) =>
+          String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;");
+
+        const content = totalCount > 0 ? `<b>${escapeHtml(text)}</b> 已收藏，共 ${totalCount} 次` : escapeHtml(text);
+
+        notif.innerHTML = `<span>📖 ${content}</span>`;
+        document.body.appendChild(notif);
+
+        requestAnimationFrame(() => {
+          notif.style.opacity = "1";
+          notif.style.transform = "translateY(0)";
+        });
+
+        setTimeout(() => {
+          notif.style.opacity = "0";
+          notif.style.transform = "translateY(12px)";
+          setTimeout(() => notif.remove(), 400);
+        }, 2500);
+      },
+      args: [message, count],
+    });
+  } catch {
+    // 某些系统页面无法注入，忽略即可。
+  }
+}
+
 // 右键菜单点击
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId !== "save-word") return;
@@ -566,60 +626,13 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
   const stored = await chrome.storage.local.get("userInfo");
   if (!stored.userInfo) {
-    // 未登录，通知 content script 显示登录提示
-    chrome.tabs.sendMessage(tab.id, { type: "NEED_LOGIN" });
+    await showPageNotification(tab?.id, "请点击插件图标登录 Google 账号");
     return;
   }
 
   try {
     const doc = await saveWord(stored.userInfo.uid, selectedText, "", tab.url, tab.title);
-    // 优先通过 content script 消息通知，失败时直接注入通知到页面
-    chrome.tabs.sendMessage(tab.id, { type: "WORD_SAVED", word: selectedText, count: doc.count }, () => {
-      if (chrome.runtime.lastError) {
-        // content script 未就绪，直接注入通知代码
-        chrome.scripting
-          .executeScript({
-            target: { tabId: tab.id },
-            func: (word, count) => {
-              const notif = document.createElement("div");
-              notif.style.cssText = [
-                "position:fixed",
-                "bottom:24px",
-                "right:24px",
-                "z-index:2147483647",
-                "display:flex",
-                "align-items:center",
-                "gap:8px",
-                "padding:10px 16px",
-                "background:#1e1b4b",
-                "color:#e0e7ff",
-                "border-radius:10px",
-                "font-size:13px",
-                "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
-                "box-shadow:0 8px 30px rgba(0,0,0,.25)",
-                "pointer-events:none",
-                "max-width:320px",
-                "transition:opacity .3s ease,transform .3s ease",
-                "opacity:0",
-                "transform:translateY(12px)",
-              ].join(";");
-              notif.innerHTML = `<span>📖 <b>${word}</b> 已收藏，共 ${count} 次</span>`;
-              document.body.appendChild(notif);
-              requestAnimationFrame(() => {
-                notif.style.opacity = "1";
-                notif.style.transform = "translateY(0)";
-              });
-              setTimeout(() => {
-                notif.style.opacity = "0";
-                notif.style.transform = "translateY(12px)";
-                setTimeout(() => notif.remove(), 400);
-              }, 2500);
-            },
-            args: [selectedText, doc.count],
-          })
-          .catch(() => {});
-      }
-    });
+    await showPageNotification(tab?.id, selectedText, doc.count);
   } catch (e) {
     console.error("右键收藏失败", e);
   }
