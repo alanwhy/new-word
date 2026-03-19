@@ -353,7 +353,7 @@ async function translateTexts(texts) {
  * }
  */
 async function fetchWordTranslations(word, context) {
-  const result = { contextTranslation: "", translations: [] };
+  const result = { contextTranslation: "", translations: [], synonyms: [], antonyms: [] };
 
   // ── 1. Free Dictionary API 获取词性和英文释义 ──
   let dictData = null;
@@ -366,23 +366,41 @@ async function fetchWordTranslations(word, context) {
     console.warn("[translate] Dictionary API 失败，将仅做上下文翻译", e);
   }
 
-  // ── 2. 提取词性分组（每个词性最多 3 条释义，去重）──
+  // ── 2. 提取词性分组（每个词性最多 3 条释义，去重）+ 收集近/反义词 ──
   const posGroups = {}; // { "noun": ["def1", "def2", ...] }
+  const synonymSet = new Set();
+  const antonymSet = new Set();
   if (Array.isArray(dictData)) {
     for (const entry of dictData) {
       for (const meaning of entry.meanings || []) {
         const pos = meaning.partOfSpeech?.toLowerCase();
         if (!pos) continue;
         if (!posGroups[pos]) posGroups[pos] = [];
+        // 收集 meaning 级别的近/反义词
+        for (const s of meaning.synonyms || []) {
+          if (s) synonymSet.add(s.toLowerCase());
+        }
+        for (const a of meaning.antonyms || []) {
+          if (a) antonymSet.add(a.toLowerCase());
+        }
         for (const def of meaning.definitions || []) {
           if (posGroups[pos].length >= 3) break;
           if (def.definition && !posGroups[pos].includes(def.definition)) {
             posGroups[pos].push(def.definition);
           }
+          // 收集 definition 级别的近/反义词
+          for (const s of def.synonyms || []) {
+            if (s) synonymSet.add(s.toLowerCase());
+          }
+          for (const a of def.antonyms || []) {
+            if (a) antonymSet.add(a.toLowerCase());
+          }
         }
       }
     }
   }
+  result.synonyms = [...synonymSet].slice(0, 10);
+  result.antonyms = [...antonymSet].slice(0, 10);
 
   // ── 3. 构建批量翻译列表 ──
   // 索引 0：上下文句子（或单词本身，用于上下文翻译）
@@ -509,10 +527,13 @@ async function handleMessage(message, sender) {
       const docId = encodeURIComponent(word.toLowerCase());
       const patchUrl =
         `${FIRESTORE_BASE_URL}/users/${uid}/words/${docId}` +
-        `?updateMask.fieldPaths=contextTranslation&updateMask.fieldPaths=translations`;
+        `?updateMask.fieldPaths=contextTranslation&updateMask.fieldPaths=translations` +
+        `&updateMask.fieldPaths=synonyms&updateMask.fieldPaths=antonyms`;
       const patchFields = {
         contextTranslation: toFirestoreValue(wordTranslations.contextTranslation),
         translations: toFirestoreValue(wordTranslations.translations),
+        synonyms: toFirestoreValue(wordTranslations.synonyms || []),
+        antonyms: toFirestoreValue(wordTranslations.antonyms || []),
       };
       const patchRes = await fetch(patchUrl, {
         method: "PATCH",

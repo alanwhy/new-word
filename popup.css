@@ -851,3 +851,103 @@ body {
   opacity: 0.6;
   cursor: default;
 }
+
+/* ── 近义词 / 反义词 ── */
+.related-words-section {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-bottom: 12px;
+}
+.related-group {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+}
+.related-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  white-space: nowrap;
+  padding-top: 3px;
+  min-width: 34px;
+  flex-shrink: 0;
+}
+.related-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.related-tag {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 20px;
+  border: 1px solid;
+  cursor: default;
+  position: relative;
+  line-height: 1.5;
+}
+.related-tag-syn {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: rgba(99, 102, 241, 0.3);
+  color: var(--accent-hover);
+}
+.related-tag-ant {
+  background: rgba(220, 38, 38, 0.1);
+  border-color: rgba(220, 38, 38, 0.3);
+  color: #f87171;
+}
+
+/* ── 捐赠区域 ── */
+.donate-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0 2px;
+}
+.donate-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.5;
+}
+.donate-qr-wrap {
+  width: 170px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--bg3);
+}
+.donate-qr {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.donate-qr-placeholder {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 16px 8px;
+  text-align: center;
+  color: var(--text-muted);
+  height: 130px;
+}
+.donate-qr-icon {
+  font-size: 32px;
+  opacity: 0.4;
+}
+.donate-qr-placeholder span {
+  font-size: 11px;
+}
+.donate-qr-placeholder small {
+  font-size: 10px;
+  opacity: 0.7;
+}
+.donate-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}

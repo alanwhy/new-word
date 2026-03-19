@@ -1,8 +1,8 @@
 ---
 name: new-word
-description: 只要进行了修改，就调用
+description: 每次对话开始，需要进行内容的修改，就需要执行这个 prompt 来生成新的 markdown 文档，并记录在 /ai-chat 下，文件名以日期命名。
 ---
 
 <!-- Tip: Use /create-prompt in chat to generate content with agent assistance -->
 
-需要按日期记录在 /ai-chat 下生成每次修改的 markdown 文档
+每次对话开始，需要进行内容的修改，就需要执行这个 prompt 来生成新的 markdown 文档，并记录在 /ai-chat 下，文件名以日期命名。

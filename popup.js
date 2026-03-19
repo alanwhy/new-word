@@ -359,6 +359,8 @@ function renderTranslations(wordData) {
       if (res.success) {
         wordData.contextTranslation = res.contextTranslation;
         wordData.translations = res.translations;
+        wordData.synonyms = res.synonyms || [];
+        wordData.antonyms = res.antonyms || [];
         // 同步到 allWords 缓存
         const idx = allWords.findIndex((w) => w.word === wordData.word);
         if (idx >= 0) allWords[idx] = { ...allWords[idx], ...wordData };
@@ -403,6 +405,50 @@ function renderTranslations(wordData) {
   }
 
   el.innerHTML = html || "";
+
+  // 近义词 / 反义词 / 形近词
+  renderRelatedWords(wordData);
+}
+
+// ─────────────────────────
+// 渲染近义词 / 反义词 / 形近词
+// ─────────────────────────
+function renderRelatedWords(wordData) {
+  const container = $("detail-related-words");
+  if (!container) return;
+
+  const synonyms = wordData.synonyms || [];
+  const antonyms = wordData.antonyms || [];
+
+  if (synonyms.length === 0 && antonyms.length === 0) {
+    container.innerHTML = "";
+    return;
+  }
+
+  let html = `<div class="related-words-section">`;
+
+  if (synonyms.length > 0) {
+    html += `<div class="related-group">
+      <span class="related-label">近义词</span>
+      <div class="related-tags">`;
+    for (const s of synonyms) {
+      html += `<span class="related-tag related-tag-syn">${escapeHtml(s)}</span>`;
+    }
+    html += `</div></div>`;
+  }
+
+  if (antonyms.length > 0) {
+    html += `<div class="related-group">
+      <span class="related-label">反义词</span>
+      <div class="related-tags">`;
+    for (const a of antonyms) {
+      html += `<span class="related-tag related-tag-ant">${escapeHtml(a)}</span>`;
+    }
+    html += `</div></div>`;
+  }
+
+  html += `</div>`;
+  container.innerHTML = html;
 }
 
 $("close-modal").addEventListener("click", closeDetail);
@@ -592,3 +638,17 @@ function showSettingsMsg(msg, type) {
 
 // 启动
 init();
+
+// 捐赠 QR 码占位处理：如果图片不存在则显示占位块
+const donateQrImg = $("donate-qr-img");
+const donateQrPlaceholder = $("donate-qr-placeholder");
+if (donateQrImg && donateQrPlaceholder) {
+  donateQrImg.addEventListener("error", () => {
+    donateQrImg.style.display = "none";
+    donateQrPlaceholder.style.display = "flex";
+  });
+  donateQrImg.addEventListener("load", () => {
+    donateQrImg.style.display = "block";
+    donateQrPlaceholder.style.display = "none";
+  });
+}

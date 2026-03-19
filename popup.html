@@ -204,6 +204,8 @@
         </div>
         <!-- 翻译区域 -->
         <div id="detail-translations" class="translations-section"></div>
+        <!-- 近义词 / 反义词 / 形近词 -->
+        <div id="detail-related-words"></div>
         <div id="detail-contexts" class="contexts"></div>
         <button id="delete-word-btn" class="btn btn-danger">
           <svg
@@ -312,9 +314,25 @@
           </svg>
           清空全部生词
         </button>
+
+        <!-- 捐赠区域 -->
+        <div class="settings-separator"></div>
+        <h3 class="settings-sub-title">支持开发者</h3>
+        <div class="donate-section">
+          <p class="donate-desc">如果这个插件对你有帮助，欢迎请我喝杯咖啡 ☕</p>
+          <div class="donate-qr-wrap">
+            <img src="icons/alipay-qr.jpg" alt="支付宝收款码" class="donate-qr" id="donate-qr-img" />
+            <div class="donate-qr-placeholder" id="donate-qr-placeholder">
+              <span class="donate-qr-icon">🔲</span>
+              <span>将 alipay-qr.jpg</span>
+              <small>放入 icons/ 目录</small>
+            </div>
+          </div>
+          <p class="donate-label">支付宝扫码支持</p>
+        </div>
       </div>
     </div>
 
-    <script src="popup.js"></script>
+    <script src="popup.js" type="module"></script>
   </body>
 </html>
