@@ -7,7 +7,9 @@
   padding: 0;
 }
 
-:root {
+/* ── 深色主题（默认） ── */
+:root,
+:root[data-theme="dark"] {
   --bg: #0f0f1a;
   --bg2: #1a1a2e;
   --bg3: #23234a;
@@ -19,6 +21,62 @@
   --green: #059669;
   --red: #dc2626;
   --radius: 10px;
+  --danger-bg: #7f1d1d;
+  --danger-text: #fca5a5;
+  --danger-hover-bg: #dc2626;
+  --danger-hover-text: #fff;
+  --context-trans-bg: linear-gradient(135deg, rgba(30, 27, 75, 0.8), rgba(35, 35, 74, 0.8));
+  --context-trans-border: rgba(99, 102, 241, 0.35);
+  --context-trans-text: #a5b4fc;
+  --modal-overlay: rgba(0, 0, 0, 0.6);
+}
+
+/* ── 浅色主题 ── */
+:root[data-theme="light"] {
+  --bg: #f0f2f5;
+  --bg2: #ffffff;
+  --bg3: #f1f3f5;
+  --accent: #4f46e5;
+  --accent-hover: #6366f1;
+  --text: #1e293b;
+  --text-muted: #64748b;
+  --border: #d1d5db;
+  --green: #059669;
+  --red: #dc2626;
+  --radius: 10px;
+  --danger-bg: #fee2e2;
+  --danger-text: #991b1b;
+  --danger-hover-bg: #dc2626;
+  --danger-hover-text: #fff;
+  --context-trans-bg: rgba(238, 242, 255, 0.8);
+  --context-trans-border: rgba(99, 102, 241, 0.3);
+  --context-trans-text: #4338ca;
+  --modal-overlay: rgba(0, 0, 0, 0.35);
+}
+
+/* 跟随系统浅色模式（未手动设置时） */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]):not([data-theme="light"]) {
+    --bg: #f0f2f5;
+    --bg2: #ffffff;
+    --bg3: #f1f3f5;
+    --accent: #4f46e5;
+    --accent-hover: #6366f1;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --border: #d1d5db;
+    --green: #059669;
+    --red: #dc2626;
+    --radius: 10px;
+    --danger-bg: #fee2e2;
+    --danger-text: #991b1b;
+    --danger-hover-bg: #dc2626;
+    --danger-hover-text: #fff;
+    --context-trans-bg: rgba(238, 242, 255, 0.8);
+    --context-trans-border: rgba(99, 102, 241, 0.3);
+    --context-trans-text: #4338ca;
+    --modal-overlay: rgba(0, 0, 0, 0.35);
+  }
 }
 
 body {
@@ -353,7 +411,7 @@ body {
 .modal {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--modal-overlay);
   z-index: 100;
   display: flex;
   align-items: flex-end;
@@ -465,12 +523,12 @@ body {
   transition: opacity 0.15s;
 }
 .btn-danger {
-  background: #7f1d1d;
-  color: #fca5a5;
+  background: var(--danger-bg);
+  color: var(--danger-text);
 }
 .btn-danger:hover {
-  background: var(--red);
-  color: #fff;
+  background: var(--danger-hover-bg);
+  color: var(--danger-hover-text);
 }
 
 /* ── 单词列表中的翻译预览 ── */
@@ -545,12 +603,12 @@ body {
 }
 
 .translation-context {
-  background: linear-gradient(135deg, rgba(30, 27, 75, 0.8), rgba(35, 35, 74, 0.8));
-  border: 1px solid rgba(99, 102, 241, 0.35);
+  background: var(--context-trans-bg);
+  border: 1px solid var(--context-trans-border);
   border-radius: 7px;
   padding: 7px 11px;
   font-size: 11px;
-  color: #a5b4fc;
+  color: var(--context-trans-text);
   line-height: 1.6;
   font-style: italic;
 }
@@ -759,4 +817,37 @@ body {
 
 .settings-msg-error {
   color: #fca5a5;
+}
+
+/* ── 设置面板：数据管理区域 ── */
+.settings-separator {
+  height: 1px;
+  background: var(--border);
+  margin: 16px 0 12px;
+}
+
+.settings-sub-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.btn-clear-all {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+  border: 1px solid transparent;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.btn-clear-all:hover:not(:disabled) {
+  background: var(--danger-hover-bg);
+  color: var(--danger-hover-text);
+}
+.btn-clear-all:disabled {
+  opacity: 0.6;
+  cursor: default;
 }

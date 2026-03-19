@@ -197,73 +197,84 @@ async function getWordDoc(uid, word) {
 }
 
 /**
- * 收藏单词（新增或 count+1），不自动翻译，翻译由用户在详情页手动触发
+ * 收藏单词：
+ * - 新词：写全量文档
+ * - 已有词：updateMask 局部更新 count / lastCollectedAt / contexts，不碰 translations
  */
 async function saveWord(uid, word, context, pageUrl, pageTitle) {
   const idToken = await getFirebaseIdToken();
   const docId = encodeURIComponent(word.toLowerCase());
   const url = `${FIRESTORE_BASE_URL}/users/${uid}/words/${docId}`;
-
-  const existing = await getWordDoc(uid, word);
   const now = new Date().toISOString();
 
-  const fields = {
-    word: toFirestoreValue(word.toLowerCase()),
-    displayWord: toFirestoreValue(word),
-    count: toFirestoreValue(existing ? existing.count + 1 : 1),
-    firstCollectedAt: toFirestoreValue(existing ? existing.firstCollectedAt : now),
-    lastCollectedAt: toFirestoreValue(now),
-    contexts: toFirestoreValue([
-      ...(existing?.contexts || []).slice(-4),
-      { text: context, url: pageUrl, title: pageTitle, time: now },
-    ]),
+  const existing = await getWordDoc(uid, word);
+
+  // 安全地取 count，防止脏数据导致 NaN
+  const prevCount = existing ? Number(existing.count) || 0 : 0;
+  const newCount = prevCount + 1;
+
+  // 拼接上下文，空字段降级为空字符串避免 undefined 写入 Firestore
+  const newContext = {
+    text: context || "",
+    url: pageUrl || "",
+    title: pageTitle || "",
+    time: now,
   };
+  const newContexts = [...(existing?.contexts || []).slice(-4), newContext];
 
-  // 已有翻译数据需要一并带上，防止 PATCH 覆盖整个文档时丢失
-  if (existing?.translations) {
-    fields.translations = toFirestoreValue(existing.translations);
+  if (!existing) {
+    // ── 新词：写全量文档 ──────────────────────
+    const fields = {
+      word: toFirestoreValue(word.toLowerCase()),
+      displayWord: toFirestoreValue(word),
+      count: toFirestoreValue(newCount),
+      firstCollectedAt: toFirestoreValue(now),
+      lastCollectedAt: toFirestoreValue(now),
+      contexts: toFirestoreValue(newContexts),
+    };
+    const res = await fetch(url, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${idToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ fields }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || "Firestore 写入失败");
+    }
+    return firestoreDocToObj(await res.json());
+  } else {
+    // ── 已有词：updateMask 局部更新，不碰 translations ──
+    const fields = {
+      count: toFirestoreValue(newCount),
+      lastCollectedAt: toFirestoreValue(now),
+      contexts: toFirestoreValue(newContexts),
+    };
+    const patchUrl =
+      `${url}?updateMask.fieldPaths=count` +
+      `&updateMask.fieldPaths=lastCollectedAt` +
+      `&updateMask.fieldPaths=contexts`;
+    const res = await fetch(patchUrl, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${idToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ fields }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || "Firestore 写入失败");
+    }
+    // 合并返回值（保留 translations 等未更新字段）
+    return { ...existing, ...firestoreDocToObj(await res.json()) };
   }
-  if (existing?.contextTranslation) {
-    fields.contextTranslation = toFirestoreValue(existing.contextTranslation);
-  }
-
-  const res = await fetch(url, {
-    method: "PATCH",
-    headers: { Authorization: `Bearer ${idToken}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ fields }),
-  });
-
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error?.message || "Firestore 写入失败");
-  }
-  return firestoreDocToObj(await res.json());
 }
 
 /**
- * 获取用户全部生词，按 count 降序
+ * 获取用户全部生词
  */
 async function getAllWords(uid) {
   const idToken = await getFirebaseIdToken();
-  // 使用 runQuery 支持排序
-  const url = `${FIRESTORE_BASE_URL}:runQuery`;
-  const body = {
-    structuredQuery: {
-      from: [{ collectionId: "words", allDescendants: false }],
-      where: {
-        fieldFilter: {
-          field: { fieldPath: "__name__" },
-          op: "GREATER_THAN_OR_EQUAL",
-          value: { referenceValue: `${FIRESTORE_BASE_URL}/users/${uid}/words/` },
-        },
-      },
-      orderBy: [{ field: { fieldPath: "count" }, direction: "DESCENDING" }],
-      limit: 200,
-    },
-  };
-
-  // 使用集合组查询更简单的方式：直接列出子集合
-  const listUrl = `${FIRESTORE_BASE_URL}/users/${uid}/words?orderBy=count%20desc&pageSize=200`;
+  // 直接列出子集合，不在 Firestore 端排序（避免需要复合索引）
+  // 排序由 popup.js 的 applyFilters() 在前端完成
+  const listUrl = `${FIRESTORE_BASE_URL}/users/${uid}/words?pageSize=500`;
   const res = await fetch(listUrl, {
     headers: { Authorization: `Bearer ${idToken}` },
   });
@@ -416,9 +427,10 @@ async function fetchWordTranslations(word, context) {
 }
 
 /**
- * 删除某个单词
+ * 删除某个单词（word 可以是单词字符串，也可以直接是文档 ID）
  */
 async function deleteWord(uid, word) {
+  if (!word) return; // 跳过脏数据
   const idToken = await getFirebaseIdToken();
   const docId = encodeURIComponent(word.toLowerCase());
   const url = `${FIRESTORE_BASE_URL}/users/${uid}/words/${docId}`;
@@ -481,13 +493,23 @@ async function handleMessage(message, sender) {
       return { success: true };
     }
 
+    case "CLEAR_ALL_WORDS": {
+      const { uid } = message;
+      const words = await getAllWords(uid);
+      // 优先用 w.word，脏数据没有 word 字段时降级用文档 ID（_id）
+      await Promise.all(words.map((w) => deleteWord(uid, w.word || w._id)));
+      return { success: true };
+    }
+
     case "TRANSLATE_WORD": {
       // 为已存在的单词（手动触发）获取翻译，写回 Firestore 并返回结果
       const { uid, word, context } = message;
       const wordTranslations = await fetchWordTranslations(word, context);
       const idToken = await getFirebaseIdToken();
       const docId = encodeURIComponent(word.toLowerCase());
-      const patchUrl = `${FIRESTORE_BASE_URL}/users/${uid}/words/${docId}`;
+      const patchUrl =
+        `${FIRESTORE_BASE_URL}/users/${uid}/words/${docId}` +
+        `?updateMask.fieldPaths=contextTranslation&updateMask.fieldPaths=translations`;
       const patchFields = {
         contextTranslation: toFirestoreValue(wordTranslations.contextTranslation),
         translations: toFirestoreValue(wordTranslations.translations),
@@ -530,10 +552,52 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
   try {
     const doc = await saveWord(stored.userInfo.uid, selectedText, "", tab.url, tab.title);
-    chrome.tabs.sendMessage(tab.id, {
-      type: "WORD_SAVED",
-      word: selectedText,
-      count: doc.count,
+    // 优先通过 content script 消息通知，失败时直接注入通知到页面
+    chrome.tabs.sendMessage(tab.id, { type: "WORD_SAVED", word: selectedText, count: doc.count }, () => {
+      if (chrome.runtime.lastError) {
+        // content script 未就绪，直接注入通知代码
+        chrome.scripting
+          .executeScript({
+            target: { tabId: tab.id },
+            func: (word, count) => {
+              const notif = document.createElement("div");
+              notif.style.cssText = [
+                "position:fixed",
+                "bottom:24px",
+                "right:24px",
+                "z-index:2147483647",
+                "display:flex",
+                "align-items:center",
+                "gap:8px",
+                "padding:10px 16px",
+                "background:#1e1b4b",
+                "color:#e0e7ff",
+                "border-radius:10px",
+                "font-size:13px",
+                "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
+                "box-shadow:0 8px 30px rgba(0,0,0,.25)",
+                "pointer-events:none",
+                "max-width:320px",
+                "transition:opacity .3s ease,transform .3s ease",
+                "opacity:0",
+                "transform:translateY(12px)",
+              ].join(";");
+              notif.innerHTML = `<span>📖 <b>${word}</b> 已收藏，共 ${count} 次</span>`;
+              document.body.appendChild(notif);
+              requestAnimationFrame(() => {
+                notif.style.opacity = "1";
+                notif.style.transform = "translateY(0)";
+              });
+              setTimeout(() => {
+                notif.style.opacity = "0";
+                notif.style.transform = "translateY(12px)";
+                setTimeout(() => notif.remove(), 400);
+              }, 2500);
+            },
+            args: [selectedText, doc.count],
+          })
+          .catch(() => {});
+      }
     });
   } catch (e) {
     console.error("右键收藏失败", e);

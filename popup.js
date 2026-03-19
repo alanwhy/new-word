@@ -8,9 +8,78 @@ let filteredWords = [];
 let currentDetailWord = null;
 
 // ─────────────────────────
+// 主题切换
+// ─────────────────────────
+async function initTheme() {
+  const stored = await new Promise((resolve) => chrome.storage.sync.get("theme", resolve));
+  const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const theme = stored.theme || (systemDark ? "dark" : "light");
+  applyTheme(theme, false);
+}
+
+function applyTheme(theme, save = true) {
+  document.documentElement.setAttribute("data-theme", theme);
+  const moonIcon = $("theme-icon-moon");
+  const sunIcon = $("theme-icon-sun");
+  if (theme === "dark") {
+    // 当前深色，点击可切换到浅色，显示太阳图标
+    moonIcon?.classList.add("hidden");
+    sunIcon?.classList.remove("hidden");
+    $("theme-btn").title = "切换浅色模式";
+  } else {
+    // 当前浅色，点击可切换到深色，显示月亮图标
+    moonIcon?.classList.remove("hidden");
+    sunIcon?.classList.add("hidden");
+    $("theme-btn").title = "切换深色模式";
+  }
+  if (save) chrome.storage.sync.set({ theme });
+}
+
+$("theme-btn").addEventListener("click", () => {
+  const current = document.documentElement.getAttribute("data-theme") || "dark";
+  applyTheme(current === "dark" ? "light" : "dark");
+});
+
+// ─────────────────────────
+// 导出 CSV
+// ─────────────────────────
+$("export-btn").addEventListener("click", exportToCSV);
+
+function exportToCSV() {
+  if (allWords.length === 0) {
+    alert("当前没有生词可以导出");
+    return;
+  }
+  const headers = ["单词", "次数", "首次收藏", "最近收藏", "翻译摘要"];
+  const rows = allWords.map((w) => {
+    const preview = getTranslationPreview(w);
+    return [
+      w.displayWord || w.word,
+      w.count || 1,
+      w.firstCollectedAt ? formatDate(w.firstCollectedAt) : "",
+      w.lastCollectedAt ? formatDate(w.lastCollectedAt) : "",
+      preview,
+    ]
+      .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
+      .join(",");
+  });
+  const csv = "\ufeff" + [headers.join(","), ...rows].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `新词本-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ─────────────────────────
 // 初始化
 // ─────────────────────────
 async function init() {
+  await initTheme();
   const res = await send({ type: "GET_USER" });
   if (res.success && res.user) {
     currentUser = res.user;
@@ -156,12 +225,15 @@ function renderWordList(words) {
 
   container.innerHTML = words
     .map((w) => {
+      // 脏数据兜底：word/displayWord 缺失时用文档 ID(_id)
+      const wordKey = w.word || w._id || "";
+      const displayWord = w.displayWord || w.word || w._id || "(未知)";
       const ctx = getDisplayContext(w);
       const translationPreview = getTranslationPreview(w);
       return `
-      <div class="word-item" data-word="${escapeAttr(w.word)}">
+      <div class="word-item" data-word="${escapeAttr(wordKey)}">
         <div class="word-main">
-          <div class="word-text">${escapeHtml(w.displayWord || w.word)}</div>
+          <div class="word-text">${escapeHtml(displayWord)}</div>
           ${translationPreview ? `<div class="word-translation">${translationPreview}</div>` : ""}
           ${ctx ? `<div class="word-context">${ctx}</div>` : ""}
         </div>
@@ -175,7 +247,7 @@ function renderWordList(words) {
   container.querySelectorAll(".word-item").forEach((el) => {
     el.addEventListener("click", () => {
       const word = el.dataset.word;
-      const wordData = allWords.find((w) => w.word === word);
+      const wordData = allWords.find((w) => (w.word || w._id) === word);
       if (wordData) openDetail(wordData);
     });
   });
@@ -205,10 +277,9 @@ function getDisplayContext(wordData) {
   const last = contexts[contexts.length - 1];
   const text = last.text || "";
   if (!text) return "";
-  const query = $("search-input").value.toLowerCase();
-  const targetWord = wordData.displayWord || wordData.word;
+  const targetWord = wordData.displayWord || wordData.word || wordData._id || "";
+  if (!targetWord) return escapeHtml(text.slice(0, 80));
   // 高亮单词
-  const regex = new RegExp(`(${escapeRegex(targetWord)})`, "gi");
   return escapeHtml(text.slice(0, 80)).replace(
     new RegExp(`(${escapeRegex(escapeHtml(targetWord))})`, "gi"),
     "<em>$1</em>",
@@ -220,7 +291,8 @@ function getDisplayContext(wordData) {
 // ─────────────────────────
 function openDetail(wordData) {
   currentDetailWord = wordData;
-  $("detail-word").textContent = wordData.displayWord || wordData.word;
+  const wordKey = wordData.word || wordData._id || "";
+  $("detail-word").textContent = wordData.displayWord || wordData.word || wordData._id || "(未知)";
   $("detail-count").textContent = `已收藏 ${wordData.count || 1} 次`;
 
   const first = wordData.firstCollectedAt ? formatDate(wordData.firstCollectedAt) : "";
@@ -231,7 +303,7 @@ function openDetail(wordData) {
   renderTranslations(wordData);
 
   const contexts = wordData.contexts || [];
-  const targetWord = wordData.displayWord || wordData.word;
+  const targetWord = wordData.displayWord || wordData.word || wordData._id || "";
   $("detail-contexts").innerHTML =
     contexts
       .slice()
@@ -344,7 +416,9 @@ function closeDetail() {
 
 $("delete-word-btn").addEventListener("click", async () => {
   if (!currentDetailWord) return;
-  if (!confirm(`确认删除「${currentDetailWord.displayWord || currentDetailWord.word}」？`)) return;
+  const wordKey = currentDetailWord.word || currentDetailWord._id;
+  const displayLabel = currentDetailWord.displayWord || currentDetailWord.word || currentDetailWord._id || "(未知)";
+  if (!confirm(`确认删除「${displayLabel}」？`)) return;
 
   const btn = $("delete-word-btn");
   btn.disabled = true;
@@ -353,12 +427,18 @@ $("delete-word-btn").addEventListener("click", async () => {
   const res = await send({
     type: "DELETE_WORD",
     uid: currentUser.uid,
-    word: currentDetailWord.word,
+    word: wordKey,
   });
 
   if (res.success) {
-    allWords = allWords.filter((w) => w.word !== currentDetailWord.word);
+    allWords = allWords.filter((w) => (w.word || w._id) !== wordKey);
     $("word-count-header").textContent = `${allWords.length} 个生词`;
+    // 先重置按钮状态，再关闭弹层，防止下次打开仍是禁用状态
+    btn.disabled = false;
+    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+      <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+    </svg>从生词本删除`;
     closeDetail();
     applyFilters();
   } else {
@@ -424,6 +504,39 @@ $("translate-provider-google").addEventListener("change", () => {
   $("google-key-section").classList.remove("hidden");
 });
 $("save-settings-btn").addEventListener("click", saveTranslateSettings);
+
+// ─────────────────────────
+// 清空词库
+// ─────────────────────────
+$("clear-words-btn").addEventListener("click", async () => {
+  if (!currentUser) return;
+  if (allWords.length === 0) {
+    showSettingsMsg("当前词库已经是空的", "error");
+    return;
+  }
+  if (!confirm(`确认清空全部 ${allWords.length} 个生词？此操作不可恢复。`)) return;
+
+  const btn = $("clear-words-btn");
+  btn.disabled = true;
+  btn.textContent = "清空中...";
+
+  const res = await send({ type: "CLEAR_ALL_WORDS", uid: currentUser.uid });
+  btn.disabled = false;
+  btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="3 6 5 6 21 6"/>
+    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+    <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+  </svg>清空全部生词`;
+  if (res.success) {
+    allWords = [];
+    filteredWords = [];
+    $("word-count-header").textContent = "0 个生词";
+    closeSettings();
+    applyFilters();
+  } else {
+    showSettingsMsg("清空失败，请重试", "error");
+  }
+});
 
 async function openSettings() {
   await loadTranslateSettings();
