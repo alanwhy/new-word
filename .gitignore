@@ -6,3 +6,5 @@ firebase-config.js
 
 # 打包文件
 *.zip
+dist/
+build/

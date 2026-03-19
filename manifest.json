@@ -1,5 +1,6 @@
 {
   "manifest_version": 3,
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyyXZi/NYf6f1tuVI8C+9nbmzHWGuJV4R2SrvCd/mt7q9/B0P98Ryg+KuCX+zT3q7w9vw4vu8oczAboBmodjSlKXyShchMQAIIrotUl1YOa3+LXIQlgxx0AsJkhlRaGNrFZLjAtRcYooTHGNu8WDdNeJ7fMV5wPHFkgtVY8e2k2OOAVbNShpwrM6YdSmGXGhJvCasvoM0jvPH9LN2vppPweOwJ5MZ6vopMAyIRzWCmGS4Bji4VJ0nsHYXlz16NrVTt1aWntH11McH3TR9LWAbTEL+MrMEGkLHlPuRLIpWiMPn/UfwOHkBvnrD4c690++dAL4ZMvCiucCPEo8aIovowQIDAQAB",
   "name": "新词本 - 英文生词收藏",
   "version": "1.0.0",
   "description": "收藏英文网页中的生词，记录收藏次数，支持 Google 账号同步",
@@ -46,7 +47,7 @@
     "128": "icons/icon128.png"
   },
   "oauth2": {
-    "client_id": "794172817025-cg6numbh2dg2qtac9dtovg05hn9b1k6s.apps.googleusercontent.com",
+    "client_id": "794172817025-l8umu1hdmbamubearpk5c91n58dv0fa2.apps.googleusercontent.com",
     "scopes": [
       "https://www.googleapis.com/auth/userinfo.email",
       "https://www.googleapis.com/auth/userinfo.profile",

@@ -102,7 +102,9 @@ export const FIREBASE_CONFIG = {
 ### 2.4 在 Firebase 中添加授权域
 
 1. 回到 Firebase Console → Authentication → Sign-in method
-2. 滚动到「已获授权的网域」→ 添加：`chrome-extension://你的插件ID`
+2. 滚动到「已获授权的网域」→ 添加：`你的插件ID.chromiumapp.org`
+
+> 例如正式发布后的扩展 ID 为 `polhbggmgpomnclejjllealbdkoahidl`，则应添加：`polhbggmgpomnclejjllealbdkoahidl.chromiumapp.org`
 
 ---
 
@@ -170,6 +172,50 @@ new-word/
 3. 点击「新词本」卡片上的 🔄 刷新按钮
 
 > Chrome 直接读取本地文件夹，不要删除或移动文件夹，否则插件失效。
+
+---
+
+## 正式发布到 Chrome Web Store
+
+如果你是第一次发布，建议按下面顺序操作：
+
+1. 先完成本 README 里的 Firebase 和本地开发配置，确保插件在你自己电脑上可以正常登录、收藏、查看和翻译。
+2. 执行发布打包脚本：
+
+```bash
+chmod +x tools/package-extension.sh
+./tools/package-extension.sh
+```
+
+3. 脚本会生成发布包：`dist/new-word-v版本号.zip`
+4. 打开 Chrome Web Store Developer Dashboard，上传 zip 并保存草稿
+5. 在草稿页面记录正式扩展 ID
+6. 用这个正式扩展 ID 去 Google Cloud Console 创建 **Chrome 扩展程序** 类型的 OAuth Client
+7. 将新的 client_id 回填到 `manifest.json` 的 `oauth2.client_id`
+8. 重新执行打包脚本，上传新 zip 覆盖草稿
+9. 准备商店截图、描述、隐私政策 URL 后提交审核
+
+### 打包脚本会包含哪些文件
+
+打包脚本只会包含运行插件所需的文件：
+
+- `manifest.json`
+- `background.js`
+- `content.js`
+- `content.css`
+- `popup.html`
+- `popup.js`
+- `popup.css`
+- `firebase-config.js`
+- `icons/`
+
+它不会把 `ai-chat/`、`tools/`、`README.md`、示例配置文件等开发辅助内容打进正式发布包。
+
+### 隐私政策
+
+仓库中已提供一份可直接修改和发布的隐私政策文档：`privacy-policy.md`
+
+建议将该文档发布到一个可公开访问的 HTTPS 页面，然后把该地址填写到 Chrome Web Store 后台。
 
 ---
 
