@@ -216,6 +216,13 @@ body {
   background: var(--bg3);
   color: var(--text);
 }
+.btn-icon.spinning svg {
+  animation: spin 0.7s linear infinite;
+}
+.btn-icon:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
 
 /* ── 工具栏 ── */
 .toolbar {

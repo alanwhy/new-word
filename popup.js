@@ -64,6 +64,22 @@ $("theme-btn").addEventListener("click", () => {
 });
 
 // ─────────────────────────
+// 刷新当前页
+// ─────────────────────────
+$("refresh-btn").addEventListener("click", async () => {
+  const btn = $("refresh-btn");
+  if (btn.disabled) return;
+  btn.disabled = true;
+  btn.classList.add("spinning");
+  try {
+    await loadActiveView({ forceRefresh: true });
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove("spinning");
+  }
+});
+
+// ─────────────────────────
 // 导出 CSV
 // ─────────────────────────
 $("export-btn").addEventListener("click", async () => {
