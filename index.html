@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>新词本</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f6f7f2;
+        --panel: rgba(255, 255, 255, 0.86);
+        --text: #1d2a22;
+        --muted: #59675e;
+        --line: rgba(29, 42, 34, 0.12);
+        --accent: #1d6b4f;
+        --accent-strong: #0d4f39;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "PingFang SC", "Noto Sans SC", "Hiragino Sans GB", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top left, rgba(29, 107, 79, 0.18), transparent 32%),
+          radial-gradient(circle at bottom right, rgba(218, 174, 98, 0.18), transparent 28%), var(--bg);
+        display: grid;
+        place-items: center;
+        padding: 24px;
+      }
+
+      main {
+        width: min(760px, 100%);
+        padding: 40px;
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        background: var(--panel);
+        backdrop-filter: blur(18px);
+        box-shadow: 0 18px 60px rgba(17, 31, 24, 0.08);
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        font-size: clamp(36px, 5vw, 52px);
+        line-height: 1.05;
+      }
+
+      p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 17px;
+        line-height: 1.7;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        margin-top: 28px;
+      }
+
+      a {
+        text-decoration: none;
+      }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 180px;
+        padding: 14px 20px;
+        border-radius: 999px;
+        border: 1px solid transparent;
+        font-weight: 600;
+        transition:
+          transform 0.18s ease,
+          box-shadow 0.18s ease,
+          background 0.18s ease;
+      }
+
+      .button-primary {
+        color: white;
+        background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+        box-shadow: 0 12px 30px rgba(29, 107, 79, 0.2);
+      }
+
+      .button-secondary {
+        color: var(--text);
+        border-color: var(--line);
+        background: rgba(255, 255, 255, 0.7);
+      }
+
+      .button:hover {
+        transform: translateY(-1px);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>新词本</h1>
+      <p>一个用于收藏英文网页生词、同步个人词库、查看词义与翻译的 Chrome 扩展。</p>
+      <div class="actions">
+        <a class="button button-primary" href="./privacy-policy.html">查看隐私政策</a>
+        <a class="button button-secondary" href="https://github.com/alanwhy/new-word">查看项目仓库</a>
+      </div>
+    </main>
+  </body>
+</html>

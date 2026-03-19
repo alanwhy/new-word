@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>新词本隐私政策</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f7f4ee;
+        --paper: #fffdf8;
+        --text: #1f241f;
+        --muted: #586055;
+        --line: rgba(31, 36, 31, 0.12);
+        --accent: #8c5e34;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "PingFang SC", "Noto Sans SC", "Hiragino Sans GB", sans-serif;
+        color: var(--text);
+        background: linear-gradient(180deg, rgba(140, 94, 52, 0.08), transparent 220px), var(--bg);
+        padding: 32px 18px 48px;
+      }
+
+      .paper {
+        width: min(900px, 100%);
+        margin: 0 auto;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        padding: clamp(24px, 4vw, 42px);
+        box-shadow: 0 20px 60px rgba(46, 33, 23, 0.08);
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: clamp(30px, 4vw, 44px);
+      }
+
+      h2 {
+        margin: 32px 0 12px;
+        font-size: 22px;
+      }
+
+      p,
+      li {
+        font-size: 16px;
+        line-height: 1.8;
+        color: var(--text);
+      }
+
+      .meta,
+      .note {
+        color: var(--muted);
+      }
+
+      ul {
+        margin: 10px 0 0;
+        padding-left: 22px;
+      }
+
+      .back {
+        display: inline-block;
+        margin-bottom: 22px;
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <article class="paper">
+      <a class="back" href="./">返回项目首页</a>
+      <h1>新词本 Chrome 扩展隐私政策</h1>
+      <p class="meta">生效日期：2026-03-19</p>
+      <p>本隐私政策适用于 Chrome 扩展“新词本 - 英文生词收藏”。</p>
+
+      <h2>1. 我们收集哪些信息</h2>
+      <p>为实现扩展核心功能，本扩展可能处理以下信息：</p>
+      <ul>
+        <li>Google 账号基础信息：包括用户 ID、邮箱地址、显示名称、头像。</li>
+        <li>用户主动保存的生词数据：包括单词本身、收藏次数、收藏时间。</li>
+        <li>用户主动触发收藏时的上下文信息：包括选中单词所在句子、页面标题、页面 URL。</li>
+        <li>用户设置数据：包括主题、排序方式、翻译服务选择。</li>
+        <li>
+          用户主动填写的翻译配置：如果用户选择 Google 翻译模式，扩展会保存用户自行填写的 Google Translate API Key。
+        </li>
+      </ul>
+      <p class="note">本扩展不会在用户未主动操作时自动提取整页内容，也不会采集与生词收藏无关的网页数据。</p>
+
+      <h2>2. 这些信息如何被使用</h2>
+      <p>上述信息仅用于以下目的：</p>
+      <ul>
+        <li>让用户使用 Google 账号登录扩展。</li>
+        <li>将用户的生词本同步到其个人 Firebase Firestore 数据库。</li>
+        <li>在弹窗中展示用户收藏的单词、上下文、次数和翻译结果。</li>
+        <li>在用户主动点击翻译时调用第三方翻译或词典服务。</li>
+        <li>保存用户的个性化设置与翻译偏好。</li>
+      </ul>
+
+      <h2>3. 数据存储位置</h2>
+      <p>数据可能存储在以下位置：</p>
+      <ul>
+        <li>Chrome 本地或同步存储：用于保存登录状态、主题、翻译设置、用户填写的 API Key 等。</li>
+        <li>Firebase Authentication：用于处理登录认证。</li>
+        <li>Firebase Firestore：用于保存用户个人生词本数据。</li>
+      </ul>
+      <p>扩展开发者不会在上述服务之外额外建立独立服务器来存储你的生词数据。</p>
+
+      <h2>4. 第三方服务</h2>
+      <p>本扩展会在用户使用相关功能时与以下第三方服务通信：</p>
+      <ul>
+        <li>Google Identity / Chrome Identity：用于 Google 登录。</li>
+        <li>Firebase Authentication：用于身份认证。</li>
+        <li>Firebase Firestore：用于数据同步与存储。</li>
+        <li>Free Dictionary API：用于获取英文单词释义、近义词、反义词。</li>
+        <li>MyMemory Translation API：当用户选择免费翻译模式时，用于翻译文本。</li>
+        <li>Google Cloud Translation API：仅当用户主动选择 Google 翻译模式并填写自己的 API Key 时使用。</li>
+      </ul>
+      <p>这些第三方服务受其各自隐私政策和服务条款约束。</p>
+
+      <h2>5. 数据共享情况</h2>
+      <p>
+        除为实现上述核心功能而向相关第三方服务发送必要请求外，本扩展不会出售、出租或主动向无关第三方共享用户个人数据。
+      </p>
+      <p>本扩展不将用户数据用于广告投放、用户画像或数据经纪用途。</p>
+
+      <h2>6. 用户控制与删除</h2>
+      <p>用户可以通过以下方式控制自己的数据：</p>
+      <ul>
+        <li>在扩展中删除单个生词或清空全部生词。</li>
+        <li>在 Chrome 中卸载扩展，删除本地存储数据。</li>
+        <li>在 Firebase 项目中删除相关用户数据。</li>
+        <li>如果用户填写过 Google Translate API Key，可在扩展设置中删除或覆盖该 Key。</li>
+      </ul>
+
+      <h2>7. 数据安全</h2>
+      <p>
+        我们尽力通过 Firebase 认证、Firestore 安全规则及 Chrome
+        扩展存储机制保护数据安全。但任何互联网传输或电子存储方式都无法保证绝对安全。
+      </p>
+
+      <h2>8. 儿童隐私</h2>
+      <p>本扩展面向一般用户，不针对儿童提供专门服务。</p>
+
+      <h2>9. 隐私政策更新</h2>
+      <p>如果本隐私政策发生重大变化，我们将通过扩展更新版本或项目页面更新内容。</p>
+
+      <h2>10. 联系方式</h2>
+      <p>如果你对本隐私政策有疑问，建议通过 Chrome Web Store 页面中提供的开发者联系邮箱与开发者联系。</p>
+    </article>
+  </body>
+</html>
