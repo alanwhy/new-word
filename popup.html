@@ -191,6 +191,20 @@
         <div class="empty-icon">🔍</div>
         <p>未找到匹配的单词</p>
       </div>
+
+      <!-- 列表加载失败 -->
+      <div id="list-error-state" class="empty-state hidden">
+        <div class="empty-icon">⚠️</div>
+        <p id="list-error-text">词库暂时没有加载出来</p>
+        <button id="retry-load-btn" class="btn btn-secondary btn-retry">重新加载</button>
+      </div>
+
+      <!-- 分页 -->
+      <div id="pagination-bar" class="pagination-bar hidden">
+        <button id="prev-page-btn" class="pagination-btn">上一页</button>
+        <span id="pagination-info" class="pagination-info">第 1 页</span>
+        <button id="next-page-btn" class="pagination-btn">下一页</button>
+      </div>
     </div>
 
     <!-- 单词详情弹出层 -->

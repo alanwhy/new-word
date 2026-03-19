@@ -158,6 +158,7 @@ body {
   color: #fca5a5;
   font-size: 12px;
   margin-top: 4px;
+  line-height: 1.6;
 }
 
 /* ── 头部 ── */
@@ -290,6 +291,50 @@ body {
   flex: 1;
   overflow-y: auto;
   padding: 6px;
+}
+
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px 10px;
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.pagination-info {
+  flex: 1;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.pagination-btn {
+  min-width: 72px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg3);
+  color: var(--text);
+  font-size: 11px;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    opacity 0.15s,
+    background 0.15s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 .word-list::-webkit-scrollbar {
@@ -521,6 +566,22 @@ body {
   font-weight: 600;
   cursor: pointer;
   transition: opacity 0.15s;
+}
+
+.btn-secondary {
+  background: var(--bg3);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+  opacity: 0.9;
+}
+
+.btn-retry {
+  width: auto;
+  padding: 8px 14px;
+  margin-top: 6px;
 }
 .btn-danger {
   background: var(--danger-bg);

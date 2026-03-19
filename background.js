@@ -23,6 +23,9 @@ const POS_ZH_MAP = {
   particle: "助词",
 };
 
+const WORDS_PAGE_SIZE_DEFAULT = 50;
+const WORDS_PAGE_SIZE_MAX = 100;
+
 // ─────────────────────────────────────────────
 // Google OAuth 登录（使用 chrome.identity）
 // ─────────────────────────────────────────────
@@ -267,21 +270,73 @@ async function saveWord(uid, word, context, pageUrl, pageTitle) {
   }
 }
 
-/**
- * 获取用户全部生词
- */
-async function getAllWords(uid) {
+function getWordsSortConfig(sort = "count") {
+  switch (sort) {
+    case "time":
+      return { fieldPath: "lastCollectedAt", direction: "desc" };
+    case "alpha":
+      return { fieldPath: "word", direction: "asc" };
+    case "count":
+    default:
+      return { fieldPath: "count", direction: "desc" };
+  }
+}
+
+async function queryWordsPage(uid, pageToken = "", pageSize = WORDS_PAGE_SIZE_DEFAULT, sort = "count") {
   const idToken = await getFirebaseIdToken();
-  // 直接列出子集合，不在 Firestore 端排序（避免需要复合索引）
-  // 排序由 popup.js 的 applyFilters() 在前端完成
-  const listUrl = `${FIRESTORE_BASE_URL}/users/${uid}/words?pageSize=500`;
-  const res = await fetch(listUrl, {
-    headers: { Authorization: `Bearer ${idToken}` },
+  const safePageSize = Math.min(WORDS_PAGE_SIZE_MAX, Math.max(1, Number(pageSize) || WORDS_PAGE_SIZE_DEFAULT));
+  const sortConfig = getWordsSortConfig(sort);
+  const params = new URLSearchParams({
+    pageSize: String(safePageSize),
+    orderBy: `${sortConfig.fieldPath} ${sortConfig.direction}`,
+  });
+
+  if (pageToken) {
+    params.set("pageToken", pageToken);
+  }
+
+  const queryUrl = `${FIRESTORE_BASE_URL}/users/${uid}/words?${params.toString()}`;
+  const res = await fetch(queryUrl, {
+    headers: {
+      Authorization: `Bearer ${idToken}`,
+    },
   });
 
   if (!res.ok) throw new Error("获取生词列表失败");
+
   const data = await res.json();
-  return (data.documents || []).map(firestoreDocToObj);
+  const documents = (data.documents || []).map(firestoreDocToObj);
+  return {
+    words: documents,
+    nextPageToken: data.nextPageToken || "",
+  };
+}
+
+async function getWordsPage(uid, options = {}) {
+  const { pageToken = "", pageSize = WORDS_PAGE_SIZE_DEFAULT, sort = "count" } = options;
+  const result = await queryWordsPage(uid, pageToken, pageSize, sort);
+  return {
+    words: result.words,
+    hasNextPage: Boolean(result.nextPageToken),
+    nextPageToken: result.nextPageToken,
+  };
+}
+
+/**
+ * 获取用户全部生词
+ */
+async function getAllWords(uid, sort = "count") {
+  const words = [];
+  let pageToken = "";
+
+  while (true) {
+    const result = await queryWordsPage(uid, pageToken, WORDS_PAGE_SIZE_DEFAULT, sort);
+    words.push(...result.words);
+    if (!result.nextPageToken) break;
+    pageToken = result.nextPageToken;
+  }
+
+  return words;
 }
 
 // ─────────────────────────────────────────────
@@ -503,6 +558,12 @@ async function handleMessage(message, sender) {
       const { uid } = message;
       const words = await getAllWords(uid);
       return { success: true, words };
+    }
+
+    case "GET_WORDS_PAGE": {
+      const { uid, pageToken, pageSize, sort } = message;
+      const result = await getWordsPage(uid, { pageToken, pageSize, sort });
+      return { success: true, ...result };
     }
 
     case "DELETE_WORD": {
